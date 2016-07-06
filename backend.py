@@ -14,11 +14,12 @@ def lunchbot():
 
 	#  process message from hipchat
 	if request.method == 'POST':
-		
-		json_dict = json.loads(request.data)
-
-		msg = json_dict['item']['message']['message']
-		room = json_dict['item']['room']['name']
+		try:
+			json_dict = json.loads(request.data)
+			msg = json_dict['item']['message']['message']
+			room = json_dict['item']['room']['name']
+		except ValueError as e:
+			return "Invalid JSON in request : " +   e.message, 400
 	
 		return process_message(msg, room)
 

@@ -2,8 +2,8 @@ import os, random, datetime, requests
 
 REST_PATH = '/var/www/html/lunchbot/restaurants.txt'
 DRIVER_PATH = '/var/www/html/lunchbot/drivers.txt'
-LAST_REST_PATH = '/var/www/html/lunchbot/driver_last.txt'
-LAST_DRIVER_PATH = '/var/www/html/lunchbot/restaurant_last.txt'
+LAST_DRIVER_PATH = '/var/www/html/lunchbot/driver_last.txt'
+LAST_REST_PATH = '/var/www/html/lunchbot/restaurant_last.txt'
 SANDBOX_URL_PATH = '/var/www/html/lunchbot/SANDBOX_URL.txt'
 TFA_URL_PATH = '/home/ubuntu/PRIVATE/TFA_URL.txt'
 
@@ -89,6 +89,28 @@ def __update_item(path, item, val):
 					continue
 			f.write(rest)
 
+#Return all lines from a file in a list
+def __get_lines(path):
+	try:
+		with open(path, 'r') as f:
+			lines = f.readlines()
+			return lines
+	except Exception as e:
+		print "COULD NOT READ FILE IN __get_lines()", e.message
+		print "PATH: " + str(path) + "\n"
+		return None		
+ 
+#Write a list of lines to a file 
+def __write_lines(path, lines):
+	try:
+		with open(path, 'w') as f:
+			f.writelines(lines) 
+	except Exception as e:
+		print "COULD NOT WRITE TO FILE IN __write_lines(): " + e.message
+		print "PATH : " + str(path) + "\n"
+		print "LINES: " + str(lines) + "\n"
+
+
 ### RETURNS TRUE IF FOUND, FALSE IF NOT OR ERROR
 def __search_for_item(path, item):
 
@@ -103,24 +125,6 @@ def __search_for_item(path, item):
 		print "PATH: " + str(path) + "\n"
 		print "ITEM: " + str(item) + "\n"
 		return False
-
-def __get_single_line(path):
-	try:
-		with open(path, 'r') as f:
-			return (f.readline()).rstrip()
-	except:
-		print "COULD NOT OPEN FILE IN __get_single_line()\n"
-		print "PATH: " + str(path) + "\n"
-		return None
-
-def __overwrite_single_line(path, line):
-	try:
-		with open(path, 'w') as f:
-			f.write(line)
-	except:
-		print "COULD NOT OPEN FILE IN __overwrite_single_line()\n"
-		print "PATH: " + str(path) + "\n"
-		print "LINE: " + str(line) + "\n"
 
 ### ADD ITEM TO LIST
 def __add_command(name, item, room):
@@ -147,12 +151,30 @@ def __add_item(path, item):
 		print "ERROR OPENING/APPENDING TO PATH IN __add_item()\n"
 		print "PATH: " + str(path) + "\n"
 		print "ITEM: " + str(item) + "\n"
+		
+def __remove_item(path, item):
+	try:
+		item = item.lower().strip()
+		lines = [l for l in __get_lines(path) if not l.lower().startswith(item)]
+		__write_lines(path, lines)
+	except:
+		print "ERROR OPENING/APPENDING TO PATH IN __remove_item()\n" 
+		print "PATH: " + str(path) + "\n"
+		print "ITEM: " + str(item) + "\n"		
 
 ### REMOVE ITEM FROM LIST
 def __remove_command(name, item, room):
 
 	path = __get_path(name)
 	if not path: return __post_to_hipchat(room, 'Proper usage: /lunchbot remove [restaurant, driver] [name of restaurant/driver]', 'gray')
+	
+	if __search_for_item(path, item):
+		__remove_item(path,item)
+		msg = str(item).upper() + ' removed from ' + str(name).upper() + ' list!'
+	else:
+		msg = str(item).upper() + ' doesn\'t exists in ' + str(name).upper() + ' list!'	
+	
+	return __post_to_hipchat(room, msg, 'purple')
 
 	return __post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
 
@@ -196,14 +218,14 @@ def __get_list_msg(name):
 	return msg
 
 ### RETURNS A RANDOM ITEM FROM A LIST
-def __get_random_item(path, last_item_file=None, save_results=False):
+def __get_random_item(path, last_item_file=None):
 
 	f = open(path, 'r')
 
 	arr = []
 
 	#Check for previous item
-	last_item = __get_single_line(last_item_file)
+	last_item = __get_lines(last_item_file)[0] if last_item_file is not None else None
 
 	for line in f:
 		
@@ -224,7 +246,7 @@ def __get_random_item(path, last_item_file=None, save_results=False):
 	choice = (arr[random.randrange(0, len(arr))]).split(',')
 
 	#Write this item to the last file
-	__overwrite_single_line(last_item_file, choice[0])
+	__write_lines(last_item_file, choice[0])
 
 	return choice[0].strip().upper()
 
