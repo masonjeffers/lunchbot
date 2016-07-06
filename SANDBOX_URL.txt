@@ -1,1 +1,1 @@
-http://accusoftcorp.hipchat.com/v2/room/2613337/notification?auth_token=YY5IqXhofUtceLzSI6DxoIzWdwzy6tUJyqEeUG5q
+https://accusoftcorp.hipchat.com/v2/room/2613337/notification?auth_token=YY5IqXhofUtceLzSI6DxoIzWdwzy6tUJyqEeUG5q

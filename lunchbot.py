@@ -25,13 +25,13 @@ def process_message(msg, room):
 	# add command requires 2 arguments (list name, list item)
 	elif msg_arr[1] == "add":
 
-		if len(msg_arr) >= 4:	return __add_item(msg_arr[2], msg_arr[3], room)
+		if len(msg_arr) >= 4:	return __add_item(msg_arr[2], ' '.join(msg_arr[3:]), room)
 		else:			return __add_item("no", "arguments", room)
 
 	# remove command requires 2 arguments (list name, list item)
 	elif msg_arr[1] == "remove":
 
-		if len(msg_arr) >= 4:	return __remove_item(msg_arr[2], msg_arr[3], room)
+		if len(msg_arr) >= 4:	return __remove_item(msg_arr[2], ' '.join(msg_arr[3:]), room)
 		else:			return __remove_item("no", "arguments", room)
 
 	# gross command requires 0 arguments
@@ -42,7 +42,7 @@ def process_message(msg, room):
 def __get_single_line(path):
 	try:
 		with open(path, 'r') as f:
-			return f.readline()
+			return (f.readline()).rstrip()
 	except:
 		return None
 
@@ -60,9 +60,9 @@ def __add_item(name, item, room):
 
 	if name.lower() == "restaurant": path = REST_PATH
 	elif name.lower() == "driver": path = DRIVER_PATH
-	else: return __post_to_hipchat(room, 'Proper usage: /lunchbot add [restaurant, driver] "name of restaurant/driver"', 'gray')
-
-	__post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
+	else: return __post_to_hipchat(room, 'Proper usage: /lunchbot add [restaurant, driver] [name of restaurant/driver]', 'gray')
+	
+	return __post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
 
 ### REMOVE ITEM FROM LIST
 def __remove_item(name, item, room):
@@ -71,9 +71,9 @@ def __remove_item(name, item, room):
 
 	if name.lower() == "restaurant": path = REST_PATH
 	elif name.lower() == "driver": path = DRIVER_PATH
-	else: return __post_to_hipchat(room, 'Proper usage: /lunchbot remove [restaurant, driver] "name of restaurant/driver"', 'gray')
+	else: return __post_to_hipchat(room, 'Proper usage: /lunchbot remove [restaurant, driver] [name of restaurant/driver]', 'gray')
 
-	__post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
+	return __post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
 
 ### ADD USER TO VETO LIST
 def __gross(user, room): __post_to_hipchat(room, 'TODO: add veto function', 'purple')
@@ -178,4 +178,4 @@ def main(room):
 	
 	__post_lunch(room)
 
-if __name__ == "__main__": main('The Force Awakens')
+if __name__ == "__main__": main('sandy lunchbox')
