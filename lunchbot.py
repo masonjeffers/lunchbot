@@ -4,7 +4,7 @@ REST_PATH = '/var/www/html/lunchbot/restaurants.txt'
 DRIVER_PATH = '/var/www/html/lunchbot/drivers.txt'
 LAST_REST_PATH = '/var/www/html/lunchbot/driver_last.txt'
 LAST_DRIVER_PATH = '/var/www/html/lunchbot/restaurant_last.txt'
-SANDBOX_URL_PATH = '/home/ubuntu/PRIVATE/SANDBOX_URL.txt'
+SANDBOX_URL_PATH = '/var/www/html/lunchbot/SANDBOX_URL.txt'
 TFA_URL_PATH = '/home/ubuntu/PRIVATE/TFA_URL.txt'
 
 ### PROCESS COMMAND FROM HIPCHAT
