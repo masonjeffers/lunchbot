@@ -176,8 +176,6 @@ def __remove_command(name, item, room):
 	
 	return __post_to_hipchat(room, msg, 'purple')
 
-	return __post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
-
 ### ADD USER TO VETO LIST
 def __gross(user, room): __post_to_hipchat(room, 'TODO: add veto function', 'purple')
 
