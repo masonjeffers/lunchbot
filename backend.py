@@ -17,9 +17,14 @@ def lunchbot():
 		
 		json_dict = json.loads(request.data)
 
+		print json_dict
+
 		msg = json_dict['item']['message']['message']
+		room = json_dict['item']['room']['name']
+
+		print room
 	
-		return process_message(msg)
+		return process_message(msg, room)
 
 	# get index page
 	else:
