@@ -34,18 +34,68 @@ def process_message(msg, room):
 		if len(msg_arr) >= 4:	return __remove_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
 		else:			return __remove_command("no", "arguments", room)
 
+	# vote command requires 2 arguments (list name, list item, value)
+	elif (msg_arr[1] == "upvote") or (msg_arr[1] == "downvote"):
+
+		if len(msg_arr) >= 4:
+			
+			if msg_arr[1] == "upvote": 	return __vote_command(msg_arr[2], ' '.join(msg_arr[3:]), 1, room)
+			else:				return __vote_command(msg_arr[2], ' '.join(msg_arr[3:]), -1, room)
+
+		else:	__vote_command('no', 'arguments', 1, room)
+
 	# gross command requires 0 arguments
 	elif msg_arr[1] == "gross":	return __gross("place holder", room)
 
 	else: return __print_help(room)
+
+def __get_path(name):
+
+	if name.lower() == 'restaurant': return REST_PATH
+	elif name.lower() == 'driver': return DRIVER_PATH
+	else: return ''
+
+def __vote_command(name, item, value, room):
+
+	msg = ''
+	val = int(value)
+
+	path = __get_path(name)
+	if (not path) or ((val != 1) and (val != -1)): return __post_to_hipchat(room, 'Proper usage: /lunchbot [upvote, downvote] [restaurant, driver] [name of restaurant/driver]', 'gray')
+
+	if __search_for_item(path, item):
+		
+		__update_item(path, item, val)		
+		msg = ('(upvote) ' if (val == 1) else '(downvote) ' ) + str(item).upper()
+
+	else: msg = str(item).upper() + ' does not exist in list ' + str(name).upper()
+
+	return __post_to_hipchat(room, msg, 'purple')
+
+def __update_item(path, item, val):
+
+	rest_list = []
+	with open(path, 'r') as f:
+		for line in f:
+			rest_list.append(line)
+
+	with open(path, 'w') as f:
+		for rest in rest_list:
+			restaurant = (rest.split(','))[0]
+			if item.upper() == restaurant.upper():
+				weight = int((rest.split(','))[1]) + val
+				if (weight > 0) and (weight < 11):
+					f.write(restaurant + ', ' + str(weight) + '\n')
+					continue
+			f.write(rest)
 
 ### RETURNS TRUE IF FOUND, FALSE IF NOT OR ERROR
 def __search_for_item(path, item):
 
 	try:
 		with open(path, 'r') as f:
-			for line in f.read():
-				restaurant = line.split(',')[0]
+			for line in f:
+				restaurant = (line.split(','))[0]
 				if item.upper() == restaurant.upper():
 					return True
 	except:
@@ -75,12 +125,10 @@ def __overwrite_single_line(path, line):
 ### ADD ITEM TO LIST
 def __add_command(name, item, room):
 
-	path = ''
 	msg = ''
 
-	if name.lower() == 'restaurant': path = REST_PATH
-	elif name.lower() == 'driver': path = DRIVER_PATH
-	else: return __post_to_hipchat(room, 'Proper usage: /lunchbot add [restaurant, driver] [name of restaurant/driver]', 'gray')
+	path = __get_path(name)
+	if not path: return __post_to_hipchat(room, 'Proper usage: /lunchbot add [restaurant, driver] [name of restaurant/driver]', 'gray')
 
 	if not __search_for_item(path, item):
 		__add_item(path, item)
@@ -92,22 +140,19 @@ def __add_command(name, item, room):
 
 def __add_item(path, item):
 
-	#try:
-	with open(path, 'a') as f:
-		f.write(str(item) + ", 1")
-	#except:
-	#	print "ERROR OPENING/APPENDING TO PATH IN __add_item()\n"
-	#	print "PATH: " + str(path) + "\n"
-	#	print "ITEM: " + str(item) + "\n"
+	try:
+		with open(path, 'a') as f:
+			f.write(str(item) + ", 1")
+	except:
+		print "ERROR OPENING/APPENDING TO PATH IN __add_item()\n"
+		print "PATH: " + str(path) + "\n"
+		print "ITEM: " + str(item) + "\n"
 
 ### REMOVE ITEM FROM LIST
 def __remove_command(name, item, room):
 
-	path = ""	
-
-	if name.lower() == "restaurant": path = REST_PATH
-	elif name.lower() == "driver": path = DRIVER_PATH
-	else: return __post_to_hipchat(room, 'Proper usage: /lunchbot remove [restaurant, driver] [name of restaurant/driver]', 'gray')
+	path = __get_path(name)
+	if not path: return __post_to_hipchat(room, 'Proper usage: /lunchbot remove [restaurant, driver] [name of restaurant/driver]', 'gray')
 
 	return __post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
 
