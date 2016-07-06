@@ -25,25 +25,42 @@ def process_message(msg, room):
 	# add command requires 2 arguments (list name, list item)
 	elif msg_arr[1] == "add":
 
-		if len(msg_arr) >= 4:	return __add_item(msg_arr[2], ' '.join(msg_arr[3:]), room)
-		else:			return __add_item("no", "arguments", room)
+		if len(msg_arr) >= 4:	return __add_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
+		else:			return __add_command("no", "arguments", room)
 
 	# remove command requires 2 arguments (list name, list item)
 	elif msg_arr[1] == "remove":
 
-		if len(msg_arr) >= 4:	return __remove_item(msg_arr[2], ' '.join(msg_arr[3:]), room)
-		else:			return __remove_item("no", "arguments", room)
+		if len(msg_arr) >= 4:	return __remove_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
+		else:			return __remove_command("no", "arguments", room)
 
 	# gross command requires 0 arguments
 	elif msg_arr[1] == "gross":	return __gross("place holder", room)
 
 	else: return __print_help(room)
 
+### RETURNS TRUE IF FOUND, FALSE IF NOT OR ERROR
+def __search_for_item(path, item):
+
+	try:
+		with open(path, 'r') as f:
+			for line in f.read():
+				restaurant = line.split(',')[0]
+				if item.upper() == restaurant.upper():
+					return True
+	except:
+		print "COULD NOT OPEN FILE IN __search_for_item()\n"
+		print "PATH: " + str(path) + "\n"
+		print "ITEM: " + str(item) + "\n"
+		return False
+
 def __get_single_line(path):
 	try:
 		with open(path, 'r') as f:
 			return (f.readline()).rstrip()
 	except:
+		print "COULD NOT OPEN FILE IN __get_single_line()\n"
+		print "PATH: " + str(path) + "\n"
 		return None
 
 def __overwrite_single_line(path, line):
@@ -51,21 +68,40 @@ def __overwrite_single_line(path, line):
 		with open(path, 'w') as f:
 			f.write(line)
 	except:
-		pass
+		print "COULD NOT OPEN FILE IN __overwrite_single_line()\n"
+		print "PATH: " + str(path) + "\n"
+		print "LINE: " + str(line) + "\n"
 
 ### ADD ITEM TO LIST
-def __add_item(name, item, room):
+def __add_command(name, item, room):
 
-	path = ""
+	path = ''
+	msg = ''
 
-	if name.lower() == "restaurant": path = REST_PATH
-	elif name.lower() == "driver": path = DRIVER_PATH
+	if name.lower() == 'restaurant': path = REST_PATH
+	elif name.lower() == 'driver': path = DRIVER_PATH
 	else: return __post_to_hipchat(room, 'Proper usage: /lunchbot add [restaurant, driver] [name of restaurant/driver]', 'gray')
+
+	if not __search_for_item(path, item):
+		__add_item(path, item)
+		msg = str(item).upper() + ' added to ' + str(name).upper() + ' list!'
+	else:
+		msg = str(item).upper() + ' already exists in ' + str(name).upper() + ' list!'
 	
-	return __post_to_hipchat(room, 'TODO: add ' + item + ' to ' + path, 'purple')
+	return __post_to_hipchat(room, msg, 'purple')
+
+def __add_item(path, item):
+
+	#try:
+	with open(path, 'a') as f:
+		f.write(str(item) + ", 1")
+	#except:
+	#	print "ERROR OPENING/APPENDING TO PATH IN __add_item()\n"
+	#	print "PATH: " + str(path) + "\n"
+	#	print "ITEM: " + str(item) + "\n"
 
 ### REMOVE ITEM FROM LIST
-def __remove_item(name, item, room):
+def __remove_command(name, item, room):
 
 	path = ""	
 
