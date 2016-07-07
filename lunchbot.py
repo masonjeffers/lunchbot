@@ -85,9 +85,9 @@ def __update_item(path, item, val):
 			if item.upper() == restaurant.upper():
 				weight = int((rest.split(','))[1]) + val
 				if (weight > 0) and (weight < 11):
-					f.write(restaurant + ', ' + str(weight) + '\n')
+					f.write((restaurant + ', ' + str(weight) + '\n').upper())
 					continue
-			f.write(rest)
+			f.write(rest.upper())
 
 #Return all lines from a file in a list
 def __get_lines(path):
@@ -146,7 +146,7 @@ def __add_item(path, item):
 
 	try:
 		with open(path, 'a') as f:
-			f.write(str(item) + ", 1")
+			f.write((str(item) + ", 1").upper())
 	except:
 		print "ERROR OPENING/APPENDING TO PATH IN __add_item()\n"
 		print "PATH: " + str(path) + "\n"
@@ -252,8 +252,8 @@ def __get_random_item(path, last_item_file=None):
 def __post_to_hipchat(room, message, color = "green", notify = False, message_format = "text"):
 
 	url = ''
-	if room == 'The Force Awakens': url = __get_single_line(TFA_URL_PATH)
-	elif room == 'sandy lunchbox': url = __get_single_line(SANDBOX_URL_PATH)
+	if room == 'The Force Awakens': url = __get_lines(TFA_URL_PATH)[0].rstrip()
+	elif room == 'sandy lunchbox': url = __get_lines(SANDBOX_URL_PATH)[0].rstrip()
 
         r = requests.post(url, json={"color":color,"message":message,"notify":notify,"message_format":message_format})
 

@@ -1,18 +1,18 @@
-Chipotle, 5
-Drama Burger, 5
-Holy Hog, 7
-Evos, 7
-Pantera Bread, 5
-Happy Fish, 1
-Tijuana Flats, 6
-That weird Salvadoran place, 2
-Wawa, 6
-Boston Market, 3
-Asados Al Carbon, 3
-Culvers, 3
-Mr. Empanada, 3
-Taco Bus, 3
-Pei Wei, 3
-Grimaldi's Pizzeria, 3
-Cappy's Pizza, 3
-Pita Pit, 1
+CHIPOTLE, 5
+DRAMA BURGER, 6
+HOLY HOG, 7
+EVOS, 7
+PANTERA BREAD, 5
+HAPPY FISH, 1
+TIJUANA FLATS, 6
+THAT WEIRD SALVADORAN PLACE, 2
+WAWA, 6
+BOSTON MARKET, 3
+ASADOS AL CARBON, 3
+CULVERS, 3
+MR. EMPANADA, 3
+PEI WEI, 3
+GRIMALDI'S PIZZERIA, 3
+CAPPY'S PIZZA, 3
+TACO BUS, 2
+PITA PIT, 1
