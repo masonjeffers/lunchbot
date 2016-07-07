@@ -8,7 +8,7 @@ SANDBOX_URL_PATH = '/var/www/html/lunchbot/SANDBOX_URL.txt'
 TFA_URL_PATH = '/home/ubuntu/PRIVATE/TFA_URL.txt'
 
 ### PROCESS COMMAND FROM HIPCHAT
-def process_message(msg, room):
+def process_message(msg, user, room):
 
 	# logic to be replaced with regex
 	msg_arr = msg.split(" ")
@@ -146,7 +146,7 @@ def __add_item(path, item):
 
 	try:
 		with open(path, 'a') as f:
-			f.write((str(item) + ", 1").upper())
+			f.write(('\n' + str(item) + ", 1").upper())
 	except:
 		print "ERROR OPENING/APPENDING TO PATH IN __add_item()\n"
 		print "PATH: " + str(path) + "\n"
@@ -182,7 +182,7 @@ def __gross(user, room): __post_to_hipchat(room, 'TODO: add veto function', 'pur
 ### POSTS PROPER USAGE MESSAGE TO HIPCHAT
 def __print_help(room):
 
-	msg = "Proper usage: /lunchbot [command (i.e. list, add, remove, gross)] [option 1] [option 2]"
+	msg = "Proper usage: /lunchbot [command (i.e. list, add, remove, upvote, downvote, gross)] [option 1] [option 2]"
 
 	return __post_to_hipchat(room, msg, "gray")
 

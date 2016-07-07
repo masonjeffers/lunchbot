@@ -17,11 +17,12 @@ def lunchbot():
 		try:
 			json_dict = json.loads(request.data)
 			msg = json_dict['item']['message']['message']
+			user = json_dict['item']['message']['from']['name']
 			room = json_dict['item']['room']['name']
 		except ValueError as e:
 			return "Invalid JSON in request : " +   e.message, 400
 	
-		return process_message(msg, room)
+		return process_message(msg, user, room)
 
 	# get index page
 	else:
