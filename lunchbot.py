@@ -2,6 +2,7 @@ import os, random, datetime, requests
 
 REST_PATH = '/var/www/html/lunchbot/restaurants.txt'
 DRIVER_PATH = '/var/www/html/lunchbot/drivers.txt'
+VETO_PATH = '/var/www/html/lunchbot/vetos.txt'
 LAST_DRIVER_PATH = '/var/www/html/lunchbot/driver_last.txt'
 LAST_REST_PATH = '/var/www/html/lunchbot/restaurant_last.txt'
 SANDBOX_URL_PATH = '/var/www/html/lunchbot/SANDBOX_URL.txt'
@@ -34,18 +35,18 @@ def process_message(msg, user, room):
 		if len(msg_arr) >= 4:	return __remove_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
 		else:			return __remove_command("no", "arguments", room)
 
-	# vote command requires 2 arguments (list name, list item, value)
-	elif (msg_arr[1] == "upvote") or (msg_arr[1] == "downvote"):
+	# vote command requires 2 arguments (list item, value)
+	elif (msg_arr[1] in ["upvote", "(upvote)"]) or (msg_arr[1] in ["downvote", "(downvote)"]):
 
-		if len(msg_arr) >= 4:
+		if len(msg_arr) >= 3:
 			
-			if msg_arr[1] == "upvote": 	return __vote_command(msg_arr[2], ' '.join(msg_arr[3:]), 1, room)
-			else:				return __vote_command(msg_arr[2], ' '.join(msg_arr[3:]), -1, room)
+			if msg_arr[1] in ["upvote", "(upvote)"]: 	return __vote_command(' '.join(msg_arr[2:]), 1, room)
+			else:						return __vote_command(' '.join(msg_arr[2:]), -1, room)
 
 		else:	__vote_command('no', 'arguments', 1, room)
 
 	# gross command requires 0 arguments
-	elif msg_arr[1] == "gross":	return __gross("place holder", room)
+	elif msg_arr[1] == "gross":	return __gross_command(user, room)
 
 	else: return __print_help(room)
 
@@ -53,22 +54,40 @@ def __get_path(name):
 
 	if name.lower() == 'restaurant': return REST_PATH
 	elif name.lower() == 'driver': return DRIVER_PATH
+	elif name.lower() == 'veto': return VETO_PATH
 	else: return ''
 
-def __vote_command(name, item, value, room):
+def __get_vote_enable():
+
+	path = __get_path('veto')
+
+	for line in __get_lines(path):
+		if 'DISABLED' in line: return False
+
+	return True
+
+def __set_vote_enable(en):
+
+	path = __get_path('veto')
+	
+	# no need to call __clear_file
+	with open(path, 'w') as f:
+		if not en: f.write('DISABLED')
+
+def __vote_command(item, value, room):
 
 	msg = ''
 	val = int(value)
 
-	path = __get_path(name)
-	if (not path) or ((val != 1) and (val != -1)): return __post_to_hipchat(room, 'Proper usage: /lunchbot [upvote, downvote] [restaurant, driver] [name of restaurant/driver]', 'gray')
+	path = __get_path('restaurant')
+	if (not path) or ((val != 1) and (val != -1)): return __post_to_hipchat(room, 'Proper usage: /lunchbot [upvote, downvote] [name of restaurant/driver]', 'gray')
 
 	if __search_for_item(path, item):
 		
 		__update_item(path, item, val)		
 		msg = ('(upvote) ' if (val == 1) else '(downvote) ' ) + str(item).upper()
 
-	else: msg = str(item).upper() + ' does not exist in list ' + str(name).upper()
+	else: msg = str(item).upper() + ' does not exist in restaurants list...'
 
 	return __post_to_hipchat(room, msg, 'purple')
 
@@ -104,7 +123,7 @@ def __get_lines(path):
 def __write_lines(path, lines):
 	try:
 		with open(path, 'w') as f:
-			f.writelines(lines) 
+			f.writelines(lines)
 	except Exception as e:
 		print "COULD NOT WRITE TO FILE IN __write_lines(): " + e.message
 		print "PATH : " + str(path) + "\n"
@@ -146,7 +165,7 @@ def __add_item(path, item):
 
 	try:
 		with open(path, 'a') as f:
-			f.write(('\n' + str(item) + ", 1").upper())
+			f.write((str(item) + ", 1").upper() + "\n")
 	except:
 		print "ERROR OPENING/APPENDING TO PATH IN __add_item()\n"
 		print "PATH: " + str(path) + "\n"
@@ -177,7 +196,33 @@ def __remove_command(name, item, room):
 	return __post_to_hipchat(room, msg, 'purple')
 
 ### ADD USER TO VETO LIST
-def __gross(user, room): __post_to_hipchat(room, 'TODO: add veto function', 'purple')
+def __gross_command(user, room): 
+
+	msg = ''
+	path = __get_path('veto')
+
+	if not __get_vote_enable(): return __post_to_hipchat(room, 'Voting disabled', 'purple')
+
+	# add user to list
+	if __search_for_item(path, user): msg  = 'You already voted!' #inform user they already voted
+	else:
+		__add_item(path, user)
+		msg = 'Every vote counts!' #add user
+
+	# check if 3 or more people in list
+	if len(__get_lines(path)) >= 3:
+		
+		__clear_file(path)
+		return __post_lunch(room)
+
+	return __post_to_hipchat(room, msg, 'purple')
+
+def __clear_file(path):
+
+	try: open(path, 'w').close()
+	except:
+		print "ERROR CLEARING FILE IN __clear_file()"
+		print "PATH: " + str(path) + "\n"
 
 ### POSTS PROPER USAGE MESSAGE TO HIPCHAT
 def __print_help(room):
@@ -265,11 +310,15 @@ def __post_lunch(room, day = datetime.datetime.today().weekday(), rest = __get_r
 	msg = ""
 
 	# monday, wednesday, friday
-	if day in [0, 2, 4]:	msg = "(chef) Hello there children! Today we're going on a field trip to " + rest + " and " + driver + " is driving!"
+	if day in [0, 2, 4]:
+
+		msg = "(chef) Hello there children! Today we're going on a field trip to " + rest + " and " + driver + " is driving!"
+		__set_vote_enable(True)
+
 	# tuesday
 	elif day == 1:		msg = "Today for lunch is KNOWLEDGE (mindblown)"
 	# thursday
-	elif day == 3:		msg = "Today is LOGIC PUZZLE GROUP"
+	elif day == 3:		msg = "Today we're having food for thought at the LOGIC PUZZLE GROUP (philosoraptor)"
 
 	# make post request
 	return __post_to_hipchat(room, msg, "green", True, "text")
@@ -279,4 +328,4 @@ def main(room):
 	
 	__post_lunch(room)
 
-if __name__ == "__main__": main('sandy lunchbox')
+if __name__ == "__main__": main('The Force Awakens')
