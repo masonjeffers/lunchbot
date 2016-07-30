@@ -302,7 +302,7 @@ def __post_lunch(room, day = datetime.datetime.today().weekday(), rest = __get_r
 
 	# monday, wednesday, friday
 	if day in [0, 2, 4]:
-		if day == 4 and random.random() > 0.01:
+		if day == 4 and random.random() > 0.4:
 			msg = "(chef) Hello there children! Today we're going to the TECH TALK and " + driver + " is driving! (sourcetree)"
 		else:
 			msg = "(chef) Hello there children! Today we're going on a field trip to " + rest + " and " + driver + " is driving!"
