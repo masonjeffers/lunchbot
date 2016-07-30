@@ -1,4 +1,4 @@
-import os, random, datetime, requests
+import os, random, datetime, requests, random
 
 REST_PATH = '/var/www/html/lunchbot/restaurants.txt'
 DRIVER_PATH = '/var/www/html/lunchbot/drivers.txt'
@@ -291,8 +291,8 @@ def __get_random_item(path, last_item_file=None):
 def __post_to_hipchat(room, message, color = "green", notify = False, message_format = "text"):
 
 	url = __get_lines(TFA_URL_PATH if room == "The Force Awakens" else SANDBOX_URL_PATH)[0].rstrip()
-
-    #r = requests.post(url, json={"color":color,"message":message,"notify":notify,"message_format":message_format})
+	
+	r = requests.post(url, json={"color":color,"message":message,"notify":notify,"message_format":message_format})
 
 	return message
 
@@ -301,8 +301,11 @@ def __post_lunch(room, day = datetime.datetime.today().weekday(), rest = __get_r
 	msg = ""
 
 	# monday, wednesday, friday
-	if day in [0, 2, 4]: 
-		msg = "(chef) Hello there children! Today we're going on a field trip to " + rest + " and " + driver + " is driving!"
+	if day in [0, 2, 4]:
+		if day == 4 and random.random() > 0.01:
+			msg = "(chef) Hello there children! Today we're going to the TECH TALK and " + driver + " is driving! (sourcetree)"
+		else:
+			msg = "(chef) Hello there children! Today we're going on a field trip to " + rest + " and " + driver + " is driving!"
 		__set_vote_enable(True)
 	
 	elif day == 1:	# tuesday
