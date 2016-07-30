@@ -19,9 +19,9 @@ def lunchbot():
 			msg = json_dict['item']['message']['message']
 			user = json_dict['item']['message']['from']['name']
 			room = json_dict['item']['room']['name']
-		except ValueError as e:
+		except (ValueError, KeyError) as e:
 			return "Invalid JSON in request : " +   e.message, 400
-	
+	 
 		return process_message(msg, user, room)
 
 	# get index page
@@ -30,4 +30,4 @@ def lunchbot():
 
 if __name__ == '__main__':
 	app.debug = True
-	app.run(debug=True, host='0.0.0.0', port=80)
+	app.run(debug=True, host='0.0.0.0', port=8080)
