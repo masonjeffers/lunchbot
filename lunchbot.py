@@ -1,4 +1,4 @@
-import os, random, datetime, requests
+import os, random, datetime, requests, random
 
 REST_PATH = '/var/www/html/lunchbot/restaurants.txt'
 DRIVER_PATH = '/var/www/html/lunchbot/drivers.txt'
@@ -8,66 +8,68 @@ LAST_REST_PATH = '/var/www/html/lunchbot/restaurant_last.txt'
 SANDBOX_URL_PATH = '/var/www/html/lunchbot/SANDBOX_URL.txt'
 TFA_URL_PATH = '/home/ubuntu/PRIVATE/TFA_URL.txt'
 
-### PROCESS COMMAND FROM HIPCHAT
+#Command reference
+# list command requires 1 argument (list name)
+# add command requires 2 arguments (list name, list item)
+# remove command requires 2 arguments (list name, list item)
+# up/downvote command requires 2 arguments (list item, value)
+# gross command requires 0 arguments
+
+commandinfo = {
+	"add":      {"args":2, "help": "[restaurant, driver] [name of restaurant/driver]"},
+	"remove":   {"args":2, "help": "[restaurant, driver] [name of restaurant/driver]"},
+	"upvote":   {"args":1, "help": "[name of restaurant/driver]"},
+	"downvote": {"args":1, "help": "[name of restaurant/driver]"},
+	"list":     {"args":1, "help": "[restaurants, drivers]"},
+	"gross":    {"args":0, "help": "[no arguments]"},
+}
+
+#Used to handle not enough arguments and invalid input
+class InvalidCommandError(Exception):
+	pass
+	
+# ---------------------------------------------------------------------------- #
+
+### PROCESS COMMAND FROM HIPCHAT 
 def process_message(msg, user, room):
-
-	# logic to be replaced with regex
 	msg_arr = msg.split(" ")
-
-	# ensure message contains a command
-	if len(msg_arr) < 2: return __print_help(room)
-
-	# list command requires 1 argument (list name)
-	if msg_arr[1] == "list":
-
-		if len(msg_arr) >= 3: 	return __print_list(msg_arr[2], room)
-		else: 			return __print_list("no arguments", room)
-		
-	# add command requires 2 arguments (list name, list item)
-	elif msg_arr[1] == "add":
-
-		if len(msg_arr) >= 4:	return __add_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
-		else:			return __add_command("no", "arguments", room)
-
-	# remove command requires 2 arguments (list name, list item)
-	elif msg_arr[1] == "remove":
-
-		if len(msg_arr) >= 4:	return __remove_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
-		else:			return __remove_command("no", "arguments", room)
-
-	# vote command requires 2 arguments (list item, value)
-	elif (msg_arr[1] in ["upvote", "(upvote)"]) or (msg_arr[1] in ["downvote", "(downvote)"]):
-
-		if len(msg_arr) >= 3:
+	command = msg_arr[1]
+	
+	try:
+		#Validate command and argument length
+		if command not in commandinfo.keys():
+			raise InvalidCommandError
+		if len(msg_arr) < commandinfo[command]["args"] + 2:
+			raise InvalidCommandError
 			
-			if msg_arr[1] in ["upvote", "(upvote)"]: 	return __vote_command(' '.join(msg_arr[2:]), 1, room)
-			else:						return __vote_command(' '.join(msg_arr[2:]), -1, room)
-
-		else:	__vote_command('no', 'arguments', 1, room)
-
-	# gross command requires 0 arguments
-	elif msg_arr[1] == "gross":	return __gross_command(user, room)
-
-	else: return __print_help(room)
+		if command == "list":
+			return __print_list(msg_arr[2], room)
+		elif command == "add":
+			return __add_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
+		elif command == "remove":
+			return __remove_command(msg_arr[2], ' '.join(msg_arr[3:]), room)
+		elif (command in ["upvote", "(upvote)"]) or (command in ["downvote", "(downvote)"]):
+			vote_value = 1 if command in ["upvote", "(upvote)"] else -1
+			return __vote_command(' '.join(msg_arr[2:]), vote_value, room)
+		elif command == "gross":	
+			return __gross_command(user, room)
+		
+	except InvalidCommandError:
+		return __print_help(room, command)
 
 def __get_path(name):
-
 	if name.lower() == 'restaurant': return REST_PATH
 	elif name.lower() == 'driver': return DRIVER_PATH
 	elif name.lower() == 'veto': return VETO_PATH
 	else: return ''
 
 def __get_vote_enable():
-
 	path = __get_path('veto')
-
 	for line in __get_lines(path):
 		if 'DISABLED' in line: return False
-
 	return True
 
 def __set_vote_enable(en):
-
 	path = __get_path('veto')
 	
 	# no need to call __clear_file
@@ -75,24 +77,21 @@ def __set_vote_enable(en):
 		if not en: f.write('DISABLED')
 
 def __vote_command(item, value, room):
-
 	msg = ''
 	val = int(value)
-
 	path = __get_path('restaurant')
-	if (not path) or ((val != 1) and (val != -1)): return __post_to_hipchat(room, 'Proper usage: /lunchbot [upvote, downvote] [name of restaurant/driver]', 'gray')
+	if (not path) or ((val != 1) and (val != -1)):
+		raise InvalidCommandError
 
 	if __search_for_item(path, item):
-		
 		__update_item(path, item, val)		
 		msg = ('(upvote) ' if (val == 1) else '(downvote) ' ) + str(item).upper()
-
-	else: msg = str(item).upper() + ' does not exist in restaurants list...'
+	else: 
+		msg = str(item).upper() + ' does not exist in restaurants list...'
 
 	return __post_to_hipchat(room, msg, 'purple')
 
 def __update_item(path, item, val):
-
 	rest_list = []
 	with open(path, 'r') as f:
 		for line in f:
@@ -147,11 +146,10 @@ def __search_for_item(path, item):
 
 ### ADD ITEM TO LIST
 def __add_command(name, item, room):
-
 	msg = ''
-
 	path = __get_path(name)
-	if not path: return __post_to_hipchat(room, 'Proper usage: /lunchbot add [restaurant, driver] [name of restaurant/driver]', 'gray')
+	if not path: 
+		raise InvalidCommandError
 
 	if not __search_for_item(path, item):
 		__add_item(path, item)
@@ -183,9 +181,9 @@ def __remove_item(path, item):
 
 ### REMOVE ITEM FROM LIST
 def __remove_command(name, item, room):
-
 	path = __get_path(name)
-	if not path: return __post_to_hipchat(room, 'Proper usage: /lunchbot remove [restaurant, driver] [name of restaurant/driver]', 'gray')
+	if not path: 
+		raise InvalidCommandError
 	
 	if __search_for_item(path, item):
 		__remove_item(path,item)
@@ -197,45 +195,44 @@ def __remove_command(name, item, room):
 
 ### ADD USER TO VETO LIST
 def __gross_command(user, room): 
-
 	msg = ''
 	path = __get_path('veto')
 
-	if not __get_vote_enable(): return __post_to_hipchat(room, 'Voting disabled', 'purple')
+	if not __get_vote_enable(): 
+		return __post_to_hipchat(room, 'Voting disabled', 'purple')
 
 	# add user to list
-	if __search_for_item(path, user): msg  = 'You already voted!' #inform user they already voted
+	if __search_for_item(path, user): 
+		msg  = 'You already voted!' #inform user they already voted
 	else:
 		__add_item(path, user)
 		msg = 'Every vote counts!' #add user
 
 	# check if 3 or more people in list
 	if len(__get_lines(path)) >= 3:
-		
 		__clear_file(path)
 		return __post_lunch(room)
 
 	return __post_to_hipchat(room, msg, 'purple')
 
 def __clear_file(path):
-
 	try: open(path, 'w').close()
 	except:
 		print "ERROR CLEARING FILE IN __clear_file()"
 		print "PATH: " + str(path) + "\n"
 
 ### POSTS PROPER USAGE MESSAGE TO HIPCHAT
-def __print_help(room):
-
-	msg = "Proper usage: /lunchbot [command (i.e. list, add, remove, upvote, downvote, gross)] [option 1] [option 2]"
-
+def __print_help(room, command = None):
+	try:
+		msg = "Proper usage: /lunchbot {0} {1}".format(command, commandinfo[command]["help"])
+	except KeyError:
+		commandList = ", ".join(commandinfo.keys())
+		msg = "Proper usage: /lunchbot [command ({})] [option 1] [option 2] ...".format(commandList)
 	return __post_to_hipchat(room, msg, "gray")
 
 ### POSTS LIST TO HIPCHAT
 def __print_list(name, room):
-
 	msg = __get_list_msg(name)
-
 	return __post_to_hipchat(room, msg, "gray")
 
 ### RETURNS LIST AS A MESSAGE FORMATTED FOR HIPCHAT
@@ -254,7 +251,7 @@ def __get_list_msg(name):
 		msg += "DRIVERS, WEIGHT\n"
 		f = open(DRIVER_PATH, 'r')
 
-	else: return "Proper usage: /lunchbot list [restaurants, drivers]"
+	else: raise InvalidCommandError
 
 	msg += f.read()
 
@@ -262,16 +259,13 @@ def __get_list_msg(name):
 
 ### RETURNS A RANDOM ITEM FROM A LIST
 def __get_random_item(path, last_item_file=None):
-
 	f = open(path, 'r')
-
 	arr = []
 
 	#Check for previous item
 	last_item = __get_lines(last_item_file)[0] if last_item_file is not None else None
 
 	for line in f:
-		
 		# first item is restaurant, second is weight
 		split_line = line.split(',')
 
@@ -296,36 +290,35 @@ def __get_random_item(path, last_item_file=None):
 ### POSTS MESSAGE TO HIPCHAT
 def __post_to_hipchat(room, message, color = "green", notify = False, message_format = "text"):
 
-	url = ''
-	if room == 'The Force Awakens': url = __get_lines(TFA_URL_PATH)[0].rstrip()
-	elif room == 'sandy lunchbox': url = __get_lines(SANDBOX_URL_PATH)[0].rstrip()
+	url = __get_lines(TFA_URL_PATH if room == "The Force Awakens" else SANDBOX_URL_PATH)[0].rstrip()
+	
+	r = requests.post(url, json={"color":color,"message":message,"notify":notify,"message_format":message_format})
 
-        r = requests.post(url, json={"color":color,"message":message,"notify":notify,"message_format":message_format})
-
-	return "OK"
+	return message
 
 ### POSTS LUNCH RECOMMENDATION
 def __post_lunch(room, day = datetime.datetime.today().weekday(), rest = __get_random_item(REST_PATH, LAST_REST_PATH), driver = __get_random_item(DRIVER_PATH)):
-
 	msg = ""
 
 	# monday, wednesday, friday
 	if day in [0, 2, 4]:
-
-		msg = "(chef) Hello there children! Today we're going on a field trip to " + rest + " and " + driver + " is driving!"
+		if day == 4 and random.random() > 0.4:
+			msg = "(chef) Hello there children! Today we're going to the TECH TALK and " + driver + " is driving! (sourcetree)"
+		else:
+			msg = "(chef) Hello there children! Today we're going on a field trip to " + rest + " and " + driver + " is driving!"
 		__set_vote_enable(True)
-
-	# tuesday
-	elif day == 1:		msg = "Today for lunch is KNOWLEDGE (mindblown)"
-	# thursday
-	elif day == 3:		msg = "Today we're having food for thought at the LOGIC PUZZLE GROUP (philosoraptor)"
+	
+	elif day == 1:	# tuesday
+		msg = "Today for lunch is KNOWLEDGE (mindblown)"
+	
+	elif day == 3:	# thursday	
+		msg = "Today we're having food for thought at the LOGIC PUZZLE GROUP (philosoraptor)"
 
 	# make post request
 	return __post_to_hipchat(room, msg, "green", True, "text")
 
 ### POSTS LUNCH SUGGESTION TO HIPCHAT
 def main(room):
-	
 	__post_lunch(room)
 
 if __name__ == "__main__": main('The Force Awakens')
