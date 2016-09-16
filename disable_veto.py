@@ -6,6 +6,6 @@ def main():
 
 	if day in [0, 2, 4]:
 		lunchbot.__set_vote_enable(False)
-		lunchbot.__post_to_hipchat('sandy lunchbox', 'It has been decided! Go forth and lunch..', 'green')
+		lunchbot.__post_to_hipchat('Rogue One', 'It has been decided! Go forth and lunch..', 'green')
 
 if __name__ == "__main__": main()

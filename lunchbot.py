@@ -7,6 +7,7 @@ LAST_DRIVER_PATH = '/var/www/html/lunchbot/driver_last.txt'
 LAST_REST_PATH = '/var/www/html/lunchbot/restaurant_last.txt'
 SANDBOX_URL_PATH = '/var/www/html/lunchbot/SANDBOX_URL.txt'
 TFA_URL_PATH = '/home/ubuntu/PRIVATE/TFA_URL.txt'
+RO_URL_PATH = '/home/ubuntu/PRIVATE/RO_URL.txt'
 
 ### PROCESS COMMAND FROM HIPCHAT
 def process_message(msg, user, room):
@@ -204,15 +205,16 @@ def __gross_command(user, room):
 	if not __get_vote_enable(): return __post_to_hipchat(room, 'Voting disabled', 'purple')
 
 	# add user to list
-	if __search_for_item(path, user): msg  = 'You already voted!' #inform user they already voted
-	else:
-		__add_item(path, user)
-		msg = 'Every vote counts!' #add user
+	#if __search_for_item(path, user): msg  = 'You already voted!' #inform user they already voted
+	#else:
+	__add_item(path, user)
+	#msg = 'Every vote counts!' #add user
 
 	# check if 3 or more people in list
 	if len(__get_lines(path)) >= 3:
 		
 		__clear_file(path)
+		print "3 or more votes to skip"
 		return __post_lunch(room)
 
 	return __post_to_hipchat(room, msg, 'purple')
@@ -268,7 +270,7 @@ def __get_random_item(path, last_item_file=None):
 	arr = []
 
 	#Check for previous item
-	last_item = __get_lines(last_item_file)[0] if last_item_file is not None else None
+	#last_item = __get_lines(last_item_file)[0] if last_item_file is not None else None
 
 	for line in f:
 		
@@ -280,18 +282,19 @@ def __get_random_item(path, last_item_file=None):
 
 		# add restaurant to list "weight" times if not
 		# previously chosen item
-		if restaurant != last_item:
-			for i in range(0, int(weight)):
-				arr.append(line)
+		#if restaurant != last_item:
+		for i in range(0, int(weight)):
+			arr.append(restaurant)
 
 	f.close()
 
-	choice = (arr[random.randrange(0, len(arr))]).split(',')
+	#choice = (arr[random.randrange(0, len(arr))]).split(',')
+	choice = random.choice(arr)
 
 	#Write this item to the last file
-	__write_lines(last_item_file, choice[0])
+	#__write_lines(last_item_file, choice[0])
 
-	return choice[0].strip().upper()
+	return choice.strip().upper()
 
 ### POSTS MESSAGE TO HIPCHAT
 def __post_to_hipchat(room, message, color = "green", notify = False, message_format = "text"):
@@ -299,6 +302,10 @@ def __post_to_hipchat(room, message, color = "green", notify = False, message_fo
 	url = ''
 	if room == 'The Force Awakens': url = __get_lines(TFA_URL_PATH)[0].rstrip()
 	elif room == 'sandy lunchbox': url = __get_lines(SANDBOX_URL_PATH)[0].rstrip()
+	elif room == 'Rogue One': url = __get_lines(RO_URL_PATH)[0].rstrip()
+
+	url = __get_lines(RO_URL_PATH)[0].rstrip()
+	print url
 
         r = requests.post(url, json={"color":color,"message":message,"notify":notify,"message_format":message_format})
 
@@ -328,4 +335,4 @@ def main(room):
 	
 	__post_lunch(room)
 
-if __name__ == "__main__": main('The Force Awakens')
+if __name__ == "__main__": main('Rogue One')
